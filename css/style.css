@@ -1,0 +1,83 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #000;
+    color: white;
+}
+
+canvas {
+    display: block;
+}
+
+#ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    text-shadow: 0 0 10px rgba(255, 105, 180, 0.8), 0 0 20px rgba(255, 105, 180, 0.8);
+}
+
+#title {
+    margin: 0;
+    font-size: 2em;
+    font-weight: bold;
+    color: #ffc0cb; /* Light Pink */
+}
+
+#music-toggle {
+    pointer-events: all;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#music-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#final-message-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: none;
+    text-align: center;
+    pointer-events: none;
+}
+
+#final-message {
+    font-size: 3em;
+    font-weight: bold;
+    color: #ff69b4; /* Hot Pink */
+    text-shadow: 0 0 15px #ff1493, 0 0 25px #ff1493;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 1.5s ease-out, transform 1.5s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #title {
+        font-size: 1.5em;
+    }
+
+    #final-message {
+        font-size: 2em;
+    }
+}
