@@ -6,6 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 
 let scene, camera, renderer, controls, composer;
 let clock = new THREE.Clock();
@@ -18,8 +19,8 @@ let celebrationTimeout;
 let audioListener, backgroundMusic, blowSound, confettiSound, sparkleSound;
 let isMusicPlaying = false;
 
-const baseLightIntensity = 1;
-const cakeBaseY = 1.1;
+const baseLightIntensity = 1.5;
+const cakeBaseY = 0.55;
 const isMobile = window.innerWidth <= 768;
 
 function init() {
@@ -51,59 +52,104 @@ function init() {
     controls.autoRotateSpeed = 0.5;
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffc0cb, 0.5);
-    scene.add(ambientLight);
+    const hemisphereLight = new THREE.HemisphereLight(0xffc0cb, 0x663399, 0.6); // Pink sky, purple ground, slightly reduced intensity
+    scene.add(hemisphereLight);
 
-    const light1 = new THREE.PointLight(0xadd8e6, 0.8, 50);
-    light1.position.set(-3, 2, -3);
+    // Add a main directional light to brighten the whole scene
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // White light, strong intensity
+    directionalLight.position.set(-5, 10, 5);
+    directionalLight.castShadow = true;
+    // Configure shadow properties for the directional light for better quality
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.camera.near = 0.5;
+    directionalLight.shadow.camera.far = 50;
+    directionalLight.shadow.camera.left = -10;
+    directionalLight.shadow.camera.right = 10;
+    directionalLight.shadow.camera.top = 10;
+    directionalLight.shadow.camera.bottom = -10;
+    scene.add(directionalLight);
+
+    const light1 = new THREE.PointLight(0xadd8e6, 1.0, 60); // Adjusted intensity
+    light1.position.set(-4, 2.5, -3);
     scene.add(light1);
 
-    const light2 = new THREE.PointLight(0xffb6c1, 0.8, 50);
-    light2.position.set(3, 2.5, 2);
+    const light2 = new THREE.PointLight(0xffb6c1, 1.0, 60); // Adjusted intensity
+    light2.position.set(4, 3, 2);
     scene.add(light2);
 
     candleLight = new THREE.PointLight(0xff9f4f, baseLightIntensity, 100);
     candleLight.castShadow = true;
+    candleLight.shadow.mapSize.width = 2048;
+    candleLight.shadow.mapSize.height = 2048;
+    candleLight.shadow.bias = -0.0005;
 
     // Floor
     const floorGeometry = new THREE.PlaneGeometry(10, 10);
-    const floorMaterial = new THREE.ShadowMaterial({ opacity: 0.5 });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    const floor = new Reflector(floorGeometry, {
+        clipBias: 0.003,
+        textureWidth: window.innerWidth * window.devicePixelRatio,
+        textureHeight: window.innerHeight * window.devicePixelRatio,
+        color: 0x777777
+    });
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
-    floor.receiveShadow = true;
     scene.add(floor);
 
     // Table
     const tableGroup = new THREE.Group();
     const tableTopGeo = new THREE.CylinderGeometry(2, 2, 0.1, 64);
-    const tableTopMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-    const tableTop = new THREE.Mesh(tableTopGeo, tableTopMat);
+    const tableMat = new THREE.MeshStandardMaterial({ 
+        color: 0x654321, // Darker wood color
+        roughness: 0.3, 
+        metalness: 0.1 
+    });
+    const tableTop = new THREE.Mesh(tableTopGeo, tableMat);
     tableTop.castShadow = true;
     tableTop.receiveShadow = true;
     const tableLegGeo = new THREE.CylinderGeometry(0.1, 0.1, 1, 32);
-    const tableLegMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-    const tableLeg = new THREE.Mesh(tableLegGeo, tableLegMat);
+    const tableLeg = new THREE.Mesh(tableLegGeo, tableMat); // Reuse the same material
     tableLeg.position.y = -0.55;
     tableLeg.castShadow = true;
+    tableLeg.receiveShadow = true; // Leg should also receive shadows
     tableGroup.add(tableTop, tableLeg);
     tableGroup.position.y = 0.5;
     scene.add(tableGroup);
 
     // Cake
     cakeGroup = new THREE.Group();
+    // Base layer
     const cakeBaseGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.4, 64);
-    const cakeBaseMat = new THREE.MeshStandardMaterial({ color: 0xffc0cb });
+    const cakeBaseMat = new THREE.MeshStandardMaterial({ color: 0xd2691e, roughness: 0.8 }); // Chocolate brown, rough
     const cakeBase = new THREE.Mesh(cakeBaseGeo, cakeBaseMat);
     cakeBase.castShadow = true;
     cakeBase.receiveShadow = true;
+    // Top layer (frosting)
     const cakeTopGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.4, 64);
-    const cakeTopMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const cakeTopMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 }); // White, slightly glossy
     const cakeTop = new THREE.Mesh(cakeTopGeo, cakeTopMat);
     cakeTop.position.y = 0.4;
     cakeTop.castShadow = true;
     cakeTop.receiveShadow = true;
     cakeGroup.add(cakeBase, cakeTop);
+
+    // Add decorative frosting pearls
+    const pearlGeo = new THREE.SphereGeometry(0.03, 16, 16);
+    const pearlMat = new THREE.MeshStandardMaterial({ color: 0xffc0cb });
+    for (let i = 0; i < 360; i += 15) {
+        const angle = THREE.MathUtils.degToRad(i);
+        // Pearls on base layer
+        const pearl1 = new THREE.Mesh(pearlGeo, pearlMat);
+        pearl1.position.set(Math.cos(angle) * 0.8, 0.2, Math.sin(angle) * 0.8);
+        cakeGroup.add(pearl1);
+        // Pearls on top layer
+        if (i % 30 === 0) { // Fewer pearls on top
+            const pearl2 = new THREE.Mesh(pearlGeo, pearlMat);
+            pearl2.position.set(Math.cos(angle) * 0.5, 0.6, Math.sin(angle) * 0.5);
+            cakeGroup.add(pearl2);
+        }
+    }
+
     cakeGroup.position.y = cakeBaseY;
     scene.add(cakeGroup);
 
@@ -123,9 +169,11 @@ function init() {
 
     // Photo Frames
     const framePositions = [
-        { x: -1.5, y: 1.2, z: 0, ry: Math.PI / 4 }, { x: 1.5, y: 1.3, z: 0, ry: -Math.PI / 4 },
-        { x: 0, y: 1.4, z: -1.5, ry: 0 }, { x: -1, y: 1.5, z: -1, ry: Math.PI / 8 },
-        { x: 1, y: 1.1, z: -1, ry: -Math.PI / 8 },
+        { x: 1.2, y: 0.9, z: 0.8, ry: -Math.PI / 8, rx: -0.15 },
+        { x: -1.2, y: 0.9, z: 0.8, ry: Math.PI / 8, rx: -0.15 },
+        { x: 0.7, y: 0.9, z: 1.3, ry: -Math.PI / 16, rx: -0.15 },
+        { x: -0.7, y: 0.9, z: 1.3, ry: Math.PI / 16, rx: -0.15 },
+        { x: 0, y: 0.9, z: 1.5, ry: 0, rx: -0.15 }
     ];
     const frameGeo = new THREE.BoxGeometry(0.5, 0.7, 0.05);
     const frameMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
@@ -133,24 +181,96 @@ function init() {
         const frame = new THREE.Mesh(frameGeo, frameMat.clone());
         frame.position.set(pos.x, pos.y, pos.z);
         frame.rotation.y = pos.ry;
+        frame.rotation.x = pos.rx || 0; // Add x rotation for flat frames
         frame.castShadow = true;
         frame.userData.baseY = pos.y;
         scene.add(frame);
         photoFrames.push(frame);
     });
 
-    // Flowers
-    const flowerGeo = new THREE.SphereGeometry(0.3, 16, 16);
-    const flowerMat = new THREE.MeshStandardMaterial({ color: 0xffb6c1, emissive: 0x330000 });
-    const flowerPositions = [ { x: -1, y: 1, z: 1 }, { x: 1, y: 1, z: 1 }, { x: 0, y: 1, z: -2 }];
-    flowerPositions.forEach(pos => {
-        const flower = new THREE.Mesh(flowerGeo, flowerMat);
-        flower.position.set(pos.x, pos.y, pos.z);
-        flower.castShadow = true;
-        flower.userData.baseY = pos.y;
-        scene.add(flower);
-        flowers.push(flower);
-    });
+function createLilyOfTheValley() {
+        const group = new THREE.Group();
+
+        // Stem
+        const stemCurve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0.1, 0.4, 0),
+            new THREE.Vector3(-0.1, 0.8, 0.1)
+        ]);
+        const stemGeo = new THREE.TubeGeometry(stemCurve, 20, 0.02, 8, false);
+        const stemMat = new THREE.MeshStandardMaterial({ color: 0x008000 }); // Green
+        const stem = new THREE.Mesh(stemGeo, stemMat);
+        stem.castShadow = true;
+        group.add(stem);
+
+        // Flower Bells (using cones)
+        const bellGeo = new THREE.ConeGeometry(0.05, 0.1, 8);
+        const bellMat = new THREE.MeshStandardMaterial({ color: 0xffffff }); // White
+
+        const numBells = 5;
+        for (let i = 0; i < numBells; i++) {
+            const bell = new THREE.Mesh(bellGeo, bellMat.clone()); // Use clone to have separate materials for animation
+            const t = 0.4 + (i / numBells) * 0.6; // Position along the stem
+            const pos = stemCurve.getPointAt(t);
+            bell.position.copy(pos);
+            
+            // Make bells hang down
+            bell.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+            bell.rotation.z = (Math.random() - 0.5) * 0.5;
+
+            bell.castShadow = true;
+            group.add(bell);
+        }
+        return group;
+    }
+
+    function createVaseWithFlowers() {
+    const vaseGroup = new THREE.Group();
+
+    // Create Vase
+    const vaseProfile = [
+        new THREE.Vector2(0.0, -0.4), new THREE.Vector2(0.25, -0.35),
+        new THREE.Vector2(0.2, -0.2), new THREE.Vector2(0.1, 0.0),
+        new THREE.Vector2(0.15, 0.3), new THREE.Vector2(0.2, 0.35)
+    ];
+    const vaseGeo = new THREE.LatheGeometry(vaseProfile, 20);
+    const vaseMat = new THREE.MeshStandardMaterial({ color: 0xB0E0E6, roughness: 0.2, metalness: 0.1 });
+    const vase = new THREE.Mesh(vaseGeo, vaseMat);
+    vase.castShadow = true;
+    vase.receiveShadow = true;
+    vaseGroup.add(vase);
+
+    // Add 2 flowers to the vase
+    const lily1 = createLilyOfTheValley();
+    lily1.scale.set(0.6, 0.6, 0.6);
+    lily1.position.set(0.05, 0.15, 0);
+    lily1.rotation.y = Math.random() * Math.PI;
+    vaseGroup.add(lily1);
+
+    const lily2 = createLilyOfTheValley();
+    lily2.scale.set(0.6, 0.6, 0.6);
+    lily2.position.set(-0.05, 0.15, 0.05);
+    lily2.rotation.y = Math.random() * Math.PI;
+    vaseGroup.add(lily2);
+    
+    return vaseGroup;
+}
+
+// Flowers in Vases
+    const vasePositions = [ 
+        { x: -1.5, y: 0.87, z: 1.5, s: 0.8 }, // y = 0.55 + 0.4 * 0.8
+        { x: 1.5, y: 0.87, z: 1.5, s: 0.8 }, // y = 0.55 + 0.4 * 0.8
+        { x: 1.8, y: 0.83, z: -0.5, s: 0.7 }, // y = 0.55 + 0.4 * 0.7
+        { x: -1.8, y: 0.83, z: -0.5, s: 0.7 }, // y = 0.55 + 0.4 * 0.7
+        { x: 0, y: 0.91, z: -2.2, s: 0.9 }  // y = 0.55 + 0.4 * 0.9
+    ];vasePositions.forEach(pos => {
+    const vaseOfFlowers = createVaseWithFlowers();
+    vaseOfFlowers.position.set(pos.x, pos.y, pos.z);
+    vaseOfFlowers.scale.set(pos.s, pos.s, pos.s);
+    vaseOfFlowers.userData.baseY = pos.y;
+    scene.add(vaseOfFlowers);
+    flowers.push(vaseOfFlowers); // Re-using the 'flowers' array for the vase groups
+});
 
     // Particles
     const sparkleCount = isMobile ? 250 : 500;
@@ -266,7 +386,17 @@ function startCelebration() {
     if (confettiSound && confettiSound.buffer) confettiSound.play();
     if (sparkleSound && sparkleSound.buffer) sparkleSound.play();
     createConfetti();
-    flowers.forEach(flower => gsap.to(flower.material.emissive, { r: 0.8, g: 0.2, b: 0.3, duration: 1.5, ease: "power2.out" }));
+    flowers.forEach(vaseGroup => { // 'flowers' array now contains vaseGroups
+        vaseGroup.children.forEach(item => {
+            if (item.type === 'Group') { // This is a lily of the valley group
+                item.children.forEach(child => { // This is a stem or a bell
+                    if (child.isMesh && child.material.color.getHexString() === 'ffffff') { // This is a bell
+                        gsap.to(child.material.emissive, { r: 0.8, g: 0.8, b: 0.2, duration: 1.5, ease: "power2.out" });
+                    }
+                });
+            }
+        });
+    });
     gsap.to(sparkles.material, { size: 0.04, duration: 1.5, ease: "power2.out" }).yoyo(true).repeat(1);
 
     const fontLoader = new FontLoader();
@@ -391,13 +521,10 @@ function animate() {
 
     // Animations
     if (cakeGroup) cakeGroup.position.y = cakeBaseY + Math.sin(elapsedTime * 0.5) * 0.05;
-    photoFrames.forEach((frame, i) => {
-        frame.position.y = frame.userData.baseY + Math.sin(elapsedTime * 0.6 + i) * 0.05;
-    });
+    // Photo frame animation disabled to keep them static.
     flowers.forEach((f, i) => {
-        f.position.y = f.userData.baseY + Math.sin(elapsedTime * 0.4 + i) * 0.1;
-        f.rotation.x = Math.sin(elapsedTime * 0.3 + i) * 0.2;
-        f.rotation.z = Math.cos(elapsedTime * 0.3 + i) * 0.2;
+        f.position.y = f.userData.baseY + Math.sin(elapsedTime * 0.4 + i) * 0.05;
+        f.rotation.y += Math.sin(elapsedTime * 0.3 + i) * 0.002;
     });
     if (flame && flame.visible) {
         const flicker = Math.random() * 0.08;
