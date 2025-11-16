@@ -29,7 +29,7 @@ function init() {
 
     // Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 1.5, 5);
+    camera.position.set(0, 2.5, 3.5);
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -47,16 +47,24 @@ function init() {
     controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 1, 0);
     controls.enableDamping = true;
-    controls.autoRotate = true;
+    controls.autoRotate = false;
     controls.autoRotateSpeed = 0.5;
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffc0cb, 0.2);
+    const ambientLight = new THREE.AmbientLight(0xffc0cb, 0.5);
     scene.add(ambientLight);
+
+    const light1 = new THREE.PointLight(0xadd8e6, 0.8, 50);
+    light1.position.set(-3, 2, -3);
+    scene.add(light1);
+
+    const light2 = new THREE.PointLight(0xffb6c1, 0.8, 50);
+    light2.position.set(3, 2.5, 2);
+    scene.add(light2);
 
     candleLight = new THREE.PointLight(0xff9f4f, baseLightIntensity, 100);
     candleLight.castShadow = true;
-    
+
     // Floor
     const floorGeometry = new THREE.PlaneGeometry(10, 10);
     const floorMaterial = new THREE.ShadowMaterial({ opacity: 0.5 });
@@ -158,9 +166,9 @@ function init() {
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-    bloomPass.threshold = 0;
-    bloomPass.strength = isMobile ? 0.4 : 0.6;
-    bloomPass.radius = 0.5;
+    bloomPass.threshold = 0.1;
+    bloomPass.strength = isMobile ? 0.2 : 0.3;
+    bloomPass.radius = 0.3;
     composer.addPass(bloomPass);
     const bokehPass = new BokehPass(scene, camera, { focus: 4.5, aperture: 0.0005, maxblur: 0.01 });
     composer.addPass(bokehPass);
@@ -268,7 +276,7 @@ function startCelebration() {
             textGeo.center();
             const textMat = new THREE.MeshStandardMaterial({ color: 0xff69b4, emissive: 0xff1493, emissiveIntensity: 1, metalness: 0.8, roughness: 0.4 });
             const ageText = new THREE.Mesh(textGeo, textMat);
-            ageText.position.set(0, 1.5, 0);
+            ageText.position.set(0, 2.2, 0);
             ageText.scale.set(0.01, 0.01, 0.01);
             scene.add(ageText);
             gsap.to(ageText.scale, { x: 1, y: 1, z: 1, duration: 2, ease: "elastic.out(1, 0.5)" });
@@ -385,10 +393,6 @@ function animate() {
     if (cakeGroup) cakeGroup.position.y = cakeBaseY + Math.sin(elapsedTime * 0.5) * 0.05;
     photoFrames.forEach((frame, i) => {
         frame.position.y = frame.userData.baseY + Math.sin(elapsedTime * 0.6 + i) * 0.05;
-        const targetZ = (frame === intersectedFrame) ? frame.position.z + 0.2 : frame.position.z;
-        const targetRotX = (frame === intersectedFrame) ? 0.2 : 0;
-        frame.position.z += (targetZ - frame.position.z) * 0.1;
-        frame.rotation.x += (targetRotX - frame.rotation.x) * 0.1;
     });
     flowers.forEach((f, i) => {
         f.position.y = f.userData.baseY + Math.sin(elapsedTime * 0.4 + i) * 0.1;
