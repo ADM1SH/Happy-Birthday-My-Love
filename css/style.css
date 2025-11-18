@@ -21,14 +21,14 @@ canvas {
     justify-content: space-between;
     align-items: flex-start;
     pointer-events: none;
-    text-shadow: 0 0 10px rgba(255, 105, 180, 0.8), 0 0 20px rgba(255, 105, 180, 0.8);
+    text-shadow: 0 0 10px rgba(255, 0, 255, 0.9), 0 0 20px rgba(255, 0, 255, 0.9);
 }
 
 #title {
     margin: 0;
     font-size: 2em;
     font-weight: bold;
-    color: #ffc0cb; /* Light Pink */
+    color: #FF69B4; /* Hot Pink */
 }
 
 #music-toggle {
@@ -65,7 +65,7 @@ canvas {
     font-size: 3em;
     font-weight: bold;
     color: #ff69b4; /* Hot Pink */
-    text-shadow: 0 0 15px #ff1493, 0 0 25px #ff1493;
+    text-shadow: 0 0 15px #DA70D6, 0 0 25px #DA70D6;
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 1.5s ease-out, transform 1.5s ease-out;

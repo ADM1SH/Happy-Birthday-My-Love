@@ -7,6 +7,7 @@ import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
+import { MeshPhysicalMaterial } from 'three';
 
 let scene, camera, renderer, controls, composer;
 let clock = new THREE.Clock();
@@ -19,14 +20,14 @@ let celebrationTimeout;
 let audioListener, backgroundMusic, blowSound, confettiSound, sparkleSound;
 let isMusicPlaying = false;
 
-const baseLightIntensity = 1.5;
+const baseLightIntensity = 2.0;
 const cakeBaseY = 0.55;
 const isMobile = window.innerWidth <= 768;
 
 function init() {
     // Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a0a2a);
+    scene.background = new THREE.Color(0x000000);
 
     // Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -52,11 +53,11 @@ function init() {
     controls.autoRotateSpeed = 0.5;
 
     // Lighting
-    const hemisphereLight = new THREE.HemisphereLight(0xffc0cb, 0x663399, 0.6); // Pink sky, purple ground, slightly reduced intensity
+    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5); // White sky, dark gray ground
     scene.add(hemisphereLight);
 
     // Add a main directional light to brighten the whole scene
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // White light, strong intensity
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.3); // White light, strong intensity
     directionalLight.position.set(-5, 10, 5);
     directionalLight.castShadow = true;
     // Configure shadow properties for the directional light for better quality
@@ -70,11 +71,11 @@ function init() {
     directionalLight.shadow.camera.bottom = -10;
     scene.add(directionalLight);
 
-    const light1 = new THREE.PointLight(0xadd8e6, 1.0, 60); // Adjusted intensity
+    const light1 = new THREE.PointLight(0x00FFFF, 1.5, 60); // Cyan light
     light1.position.set(-4, 2.5, -3);
     scene.add(light1);
 
-    const light2 = new THREE.PointLight(0xffb6c1, 1.0, 60); // Adjusted intensity
+    const light2 = new THREE.PointLight(0xFF00FF, 1.5, 60); // Magenta light
     light2.position.set(4, 3, 2);
     scene.add(light2);
 
@@ -120,52 +121,60 @@ function init() {
     cakeGroup = new THREE.Group();
     // Base layer
     const cakeBaseGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.4, 64);
-    const cakeBaseMat = new THREE.MeshStandardMaterial({ color: 0xd2691e, roughness: 0.8 }); // Chocolate brown, rough
+    const cakeBaseMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 }); // Saddle brown
     const cakeBase = new THREE.Mesh(cakeBaseGeo, cakeBaseMat);
     cakeBase.castShadow = true;
     cakeBase.receiveShadow = true;
-    // Top layer (frosting)
-    const cakeTopGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.4, 64);
-    const cakeTopMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 }); // White, slightly glossy
+    // Top layer (frosting) - TALLER
+    const cakeTopGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.8, 64); // Increased height
+    const textureLoader = new THREE.TextureLoader();
+    const icingTexture = textureLoader.load('IMG_2376.jpeg');
+    // Adjust texture wrapping
+    icingTexture.wrapS = THREE.RepeatWrapping;
+    icingTexture.repeat.x = 3;
+
+    const cakeTopMat = new THREE.MeshStandardMaterial({ map: icingTexture, roughness: 0.5, metalness: 0.1 }); // Apply texture
     const cakeTop = new THREE.Mesh(cakeTopGeo, cakeTopMat);
-    cakeTop.position.y = 0.4;
+    cakeTop.rotation.y = Math.PI / 2; // Rotate the cake top to face the front
+    cakeTop.position.y = 0.6; // Adjusted position for new height
     cakeTop.castShadow = true;
     cakeTop.receiveShadow = true;
     cakeGroup.add(cakeBase, cakeTop);
 
     // Add decorative frosting pearls
     const pearlGeo = new THREE.SphereGeometry(0.03, 16, 16);
-    const pearlMat = new THREE.MeshStandardMaterial({ color: 0xffc0cb });
+    const pearlMat = new THREE.MeshStandardMaterial({ color: 0xFFB6C1 });
     for (let i = 0; i < 360; i += 15) {
         const angle = THREE.MathUtils.degToRad(i);
         // Pearls on base layer
         const pearl1 = new THREE.Mesh(pearlGeo, pearlMat);
         pearl1.position.set(Math.cos(angle) * 0.8, 0.2, Math.sin(angle) * 0.8);
         cakeGroup.add(pearl1);
-        // Pearls on top layer
-        if (i % 30 === 0) { // Fewer pearls on top
+        // Pearls on top layer (now a ring at the bottom of the tall layer)
+        if (i % 30 === 0) { 
             const pearl2 = new THREE.Mesh(pearlGeo, pearlMat);
-            pearl2.position.set(Math.cos(angle) * 0.5, 0.6, Math.sin(angle) * 0.5);
+            pearl2.position.set(Math.cos(angle) * 0.5, 0.25, Math.sin(angle) * 0.5); // Adjusted y position
             cakeGroup.add(pearl2);
         }
     }
 
     cakeGroup.position.y = cakeBaseY;
+    cakeGroup.scale.set(1.2, 1.2, 1.2); // Make the cake 20% bigger
     scene.add(cakeGroup);
 
     // Candle & Flame
     const candleGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.2, 16);
-    const candleMat = new THREE.MeshStandardMaterial({ color: 0xf0e68c });
+    const candleMat = new THREE.MeshStandardMaterial({ color: 0xF5F5DC });
     const candle = new THREE.Mesh(candleGeo, candleMat);
-    candle.position.set(0, 0.7, 0);
+    candle.position.set(0, 1.1, 0); // Adjusted for taller cake
     cakeGroup.add(candle);
     const flameGeo = new THREE.ConeGeometry(0.03, 0.1, 16);
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 2 });
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0xFFA500, emissive: 0xFF4500, emissiveIntensity: 2 });
     flame = new THREE.Mesh(flameGeo, flameMat);
-    flame.position.set(0, 0.85, 0);
+    flame.position.set(0, 1.25, 0); // Adjusted for taller cake
     cakeGroup.add(flame);
     cakeGroup.add(candleLight);
-    candleLight.position.set(0, 0.9, 0);
+    candleLight.position.set(0, 1.3, 0); // Adjusted for taller cake
 
     // Photo Frames
     const framePositions = [
@@ -198,14 +207,21 @@ function createLilyOfTheValley() {
             new THREE.Vector3(-0.1, 0.8, 0.1)
         ]);
         const stemGeo = new THREE.TubeGeometry(stemCurve, 20, 0.02, 8, false);
-        const stemMat = new THREE.MeshStandardMaterial({ color: 0x008000 }); // Green
+        const stemMat = new THREE.MeshStandardMaterial({ color: 0x556B2F }); // Dark Olive Green
         const stem = new THREE.Mesh(stemGeo, stemMat);
         stem.castShadow = true;
         group.add(stem);
 
-        // Flower Bells (using cones)
-        const bellGeo = new THREE.ConeGeometry(0.05, 0.1, 8);
-        const bellMat = new THREE.MeshStandardMaterial({ color: 0xffffff }); // White
+        // Flower Bells (using LatheGeometry for a more realistic shape)
+        const bellProfile = [
+            new THREE.Vector2(0.00, 0.0),
+            new THREE.Vector2(0.05, 0.02),
+            new THREE.Vector2(0.04, 0.08),
+            new THREE.Vector2(0.02, 0.1),
+            new THREE.Vector2(0.00, 0.1)
+        ];
+        const bellGeo = new THREE.LatheGeometry(bellProfile, 12);
+        const bellMat = new THREE.MeshStandardMaterial({ color: 0xFFFFF0 }); // Ivory White
 
         const numBells = 5;
         for (let i = 0; i < numBells; i++) {
@@ -227,14 +243,25 @@ function createLilyOfTheValley() {
     function createVaseWithFlowers() {
     const vaseGroup = new THREE.Group();
 
-    // Create Vase
+    // Create Vase with a more elegant profile
     const vaseProfile = [
-        new THREE.Vector2(0.0, -0.4), new THREE.Vector2(0.25, -0.35),
-        new THREE.Vector2(0.2, -0.2), new THREE.Vector2(0.1, 0.0),
-        new THREE.Vector2(0.15, 0.3), new THREE.Vector2(0.2, 0.35)
+        new THREE.Vector2(0.0, -0.4), 
+        new THREE.Vector2(0.2, -0.35),
+        new THREE.Vector2(0.25, -0.2), 
+        new THREE.Vector2(0.15, 0.0),
+        new THREE.Vector2(0.1, 0.2), 
+        new THREE.Vector2(0.12, 0.4)
     ];
-    const vaseGeo = new THREE.LatheGeometry(vaseProfile, 20);
-    const vaseMat = new THREE.MeshStandardMaterial({ color: 0xB0E0E6, roughness: 0.2, metalness: 0.1 });
+    const vaseGeo = new THREE.LatheGeometry(vaseProfile, 32);
+    // Use MeshPhysicalMaterial for a frosted glass effect
+    const vaseMat = new THREE.MeshPhysicalMaterial({
+        color: 0xadd8e6, // Light blue tint
+        transmission: 1.0, // Fully transparent
+        roughness: 0.3,    // Frosted look
+        metalness: 0.0,
+        ior: 1.5,
+        thickness: 0.1
+    });
     const vase = new THREE.Mesh(vaseGeo, vaseMat);
     vase.castShadow = true;
     vase.receiveShadow = true;
@@ -404,7 +431,7 @@ function startCelebration() {
         font => {
             const textGeo = new TextGeometry('18', { font, size: 0.5, height: 0.1 });
             textGeo.center();
-            const textMat = new THREE.MeshStandardMaterial({ color: 0xff69b4, emissive: 0xff1493, emissiveIntensity: 1, metalness: 0.8, roughness: 0.4 });
+            const textMat = new THREE.MeshStandardMaterial({ color: 0xff69b4, emissive: 0xFF007F, emissiveIntensity: 1, metalness: 0.8, roughness: 0.4 });
             const ageText = new THREE.Mesh(textGeo, textMat);
             ageText.position.set(0, 2.2, 0);
             ageText.scale.set(0.01, 0.01, 0.01);
@@ -463,7 +490,7 @@ function createSmoke() {
 }
 
 function createConfetti() {
-    const colors = [new THREE.Color(0xffc0cb), new THREE.Color(0xff69b4), new THREE.Color(0xffd700)];
+    const colors = [new THREE.Color(0xFFD700), new THREE.Color(0xFF69B4), new THREE.Color(0x00FFFF), new THREE.Color(0x9400D3)]; // Gold, Hot Pink, Cyan, Dark Violet
     confettiParticles = createParticleSystem({
         count: isMobile ? 800 : 2000,
         origin: { x: 0, y: 1.5, z: 0 },
