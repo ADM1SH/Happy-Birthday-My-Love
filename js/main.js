@@ -192,7 +192,9 @@ function createFloor() {
         const floorMat = new THREE.MeshStandardMaterial({
             color: 0x000000,
             roughness: 0.8,
-            metalness: 0.2
+            metalness: 0.2,
+            transparent: true,
+            opacity: 0
         });
         floor = new THREE.Mesh(floorGeometry, floorMat);
         floor.receiveShadow = true;
