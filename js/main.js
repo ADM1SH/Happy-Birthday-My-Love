@@ -60,11 +60,9 @@ const state = {
     celebrationTimeout: null,
     audio: {
         listener: null,
-        backgroundMusic: null,
         blowSound: null,
         confettiSound: null,
         sparkleSound: null,
-        isMusicPlaying: false,
     },
     mic: {
         audioContext: null,
@@ -120,12 +118,6 @@ function setupAudio() {
 
 function loadAudio() {
     const audioLoader = new THREE.AudioLoader();
-    state.audio.backgroundMusic = new THREE.Audio(state.audio.listener);
-    audioLoader.load('assets/audio/background_music.mp3', buffer => {
-        state.audio.backgroundMusic.setBuffer(buffer);
-        state.audio.backgroundMusic.setLoop(true);
-        state.audio.backgroundMusic.setVolume(0.3);
-    });
     state.audio.blowSound = new THREE.Audio(state.audio.listener);
     audioLoader.load('assets/audio/blow.mp3', buffer => state.audio.blowSound.setBuffer(buffer));
     state.audio.confettiSound = new THREE.Audio(state.audio.listener);
@@ -215,7 +207,7 @@ function createCake() {
     
     const cakeTopGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.8, 64);
     const textureLoader = new THREE.TextureLoader();
-    const icingTexture = textureLoader.load('IMG_2376.jpeg');
+    const icingTexture = textureLoader.load('assets/images/IMG_2376.jpeg');
     icingTexture.wrapS = THREE.RepeatWrapping;
     icingTexture.repeat.x = 3;
     const cakeTopMat = new THREE.MeshStandardMaterial({ map: icingTexture, roughness: 0.5, metalness: 0.1 });
@@ -267,11 +259,11 @@ function createCandle() {
 function createPhotoFrames() {
     const textureLoaderPhoto = new THREE.TextureLoader();
     const photoTextures = [
-        textureLoaderPhoto.load('Screenshot 2025-11-20 at 10.39.25 AM.png'),
-        textureLoaderPhoto.load('IMG_2520.jpeg'),
-        textureLoaderPhoto.load('IMG_3146.JPG'),
-        textureLoaderPhoto.load('IMG_2854.JPG'),
-        textureLoaderPhoto.load('IMG_2847.jpeg')
+        textureLoaderPhoto.load('assets/images/Screenshot 2025-11-20 at 10.39.25 AM.png'),
+        textureLoaderPhoto.load('assets/images/IMG_2520.jpeg'),
+        textureLoaderPhoto.load('assets/images/IMG_3146.JPG'),
+        textureLoaderPhoto.load('assets/images/IMG_2854.JPG'),
+        textureLoaderPhoto.load('assets/images/IMG_2847.jpeg')
     ];
 
     const framePositions = [
@@ -438,22 +430,6 @@ function setupEventListeners() {
 }
 
 function setupUI() {
-    const musicToggle = document.getElementById('music-toggle');
-    const musicOn = document.getElementById('music-on');
-    const musicOff = document.getElementById('music-off');
-    musicToggle.addEventListener('click', () => {
-        if (state.audio.isMusicPlaying) {
-            state.audio.backgroundMusic.pause();
-            musicOn.style.display = 'none';
-            musicOff.style.display = 'block';
-        } else {
-            state.audio.backgroundMusic.play();
-            musicOn.style.display = 'block';
-            musicOff.style.display = 'none';
-        }
-        state.audio.isMusicPlaying = !state.audio.isMusicPlaying;
-    });
-
     const micButton = document.createElement('button');
     micButton.textContent = 'Enable Mic to Blow';
     micButton.id = 'mic-button';

@@ -66,4 +66,12 @@ The project can be personalized by modifying the `js/main.js` file:
 
 *   **Age:** In the `startCelebration` function, you can change the text '18' in the `TextGeometry` constructor to any other age.
 *   **Final Message:** In the same function, modify the `textContent` of the `finalMsg` element to change the birthday message.
-*   **Photos:** The photo frames are currently placeholders. You can apply textures to the `photoFrames` array of meshes to display custom images.
+*   **Photos:** The photo frames are currently placeholders. You can apply textures to the `photoFrames` array of meshes to display custom images. To do this, you would use the `TextureLoader` from Three.js to load your images and then apply them as a `map` to the material of each photo frame.
+
+## Contributing
+
+Contributions are welcome! If you have any ideas, suggestions, or improvements, feel free to open an issue or submit a pull request.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
