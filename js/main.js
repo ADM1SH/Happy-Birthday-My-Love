@@ -20,22 +20,24 @@ const config = {
         point1: 1.5,
         point2: 1.5,
     },
-    shadowMapSize: 2048,
+    shadowMapSize: window.innerWidth <= 768 ? 1024 : 2048,
     bloom: {
-        strength: window.innerWidth <= 768 ? 0.2 : 0.3,
-        radius: 0.3,
+        strength: window.innerWidth <= 768 ? 0.4 : 0.3,
+        radius: window.innerWidth <= 768 ? 0.2 : 0.3,
         threshold: 0.1,
     },
     bokeh: {
         focus: 4.5,
         aperture: 0.0005,
-        maxblur: 0.01,
+        maxblur: window.innerWidth <= 768 ? 0.005 : 0.01,
     },
     particles: {
-        sparkleCount: window.innerWidth <= 768 ? 250 : 500,
-        confettiCount: window.innerWidth <= 768 ? 800 : 2000,
+        sparkleCount: window.innerWidth <= 768 ? 200 : 500,
+        confettiCount: window.innerWidth <= 768 ? 500 : 2000,
     },
     micSensitivity: 100,
+    geometryDetail: window.innerWidth <= 768 ? 32 : 64,
+    pixelRatio: Math.min(window.devicePixelRatio, 1.5),
 };
 
 // --- STATE ---
@@ -103,9 +105,9 @@ function setupCamera() {
 }
 
 function setupRenderer() {
-    state.renderer = new THREE.WebGLRenderer({ antialias: true });
+    state.renderer = new THREE.WebGLRenderer({ antialias: !config.isMobile });
     state.renderer.setSize(window.innerWidth, window.innerHeight);
-    state.renderer.setPixelRatio(window.devicePixelRatio);
+    state.renderer.setPixelRatio(config.pixelRatio);
     state.renderer.shadowMap.enabled = true;
     document.body.appendChild(state.renderer.domElement);
 }
@@ -168,12 +170,23 @@ function setupLights() {
 
 function createFloor() {
     const floorGeometry = new THREE.PlaneGeometry(10, 10);
-    const floor = new Reflector(floorGeometry, {
-        clipBias: 0.003,
-        textureWidth: window.innerWidth * window.devicePixelRatio,
-        textureHeight: window.innerHeight * window.devicePixelRatio,
-        color: 0x777777
-    });
+    let floor;
+    if (config.isMobile) {
+        const floorMat = new THREE.MeshStandardMaterial({
+            color: 0x222222,
+            roughness: 0.8,
+            metalness: 0.2
+        });
+        floor = new THREE.Mesh(floorGeometry, floorMat);
+        floor.receiveShadow = true;
+    } else {
+        floor = new Reflector(floorGeometry, {
+            clipBias: 0.003,
+            textureWidth: window.innerWidth * config.pixelRatio,
+            textureHeight: window.innerHeight * config.pixelRatio,
+            color: 0x777777
+        });
+    }
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
     state.scene.add(floor);
@@ -181,12 +194,12 @@ function createFloor() {
 
 function createTable() {
     const tableGroup = new THREE.Group();
-    const tableTopGeo = new THREE.CylinderGeometry(2, 2, 0.1, 64);
+    const tableTopGeo = new THREE.CylinderGeometry(2, 2, 0.1, config.geometryDetail);
     const tableMat = new THREE.MeshStandardMaterial({ color: 0x654321, roughness: 0.3, metalness: 0.1 });
     const tableTop = new THREE.Mesh(tableTopGeo, tableMat);
     tableTop.castShadow = true;
     tableTop.receiveShadow = true;
-    const tableLegGeo = new THREE.CylinderGeometry(0.1, 0.1, 1, 32);
+    const tableLegGeo = new THREE.CylinderGeometry(0.1, 0.1, 1, config.geometryDetail / 2);
     const tableLeg = new THREE.Mesh(tableLegGeo, tableMat);
     tableLeg.position.y = -0.55;
     tableLeg.castShadow = true;
@@ -199,13 +212,13 @@ function createTable() {
 function createCake() {
     state.cakeGroup = new THREE.Group();
     
-    const cakeBaseGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.4, 64);
+    const cakeBaseGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.4, config.geometryDetail);
     const cakeBaseMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 });
     const cakeBase = new THREE.Mesh(cakeBaseGeo, cakeBaseMat);
     cakeBase.castShadow = true;
     cakeBase.receiveShadow = true;
     
-    const cakeTopGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.8, 64);
+    const cakeTopGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.8, config.geometryDetail);
     const textureLoader = new THREE.TextureLoader();
     const icingTexture = textureLoader.load('assets/images/IMG_2376.jpeg');
     icingTexture.wrapS = THREE.RepeatWrapping;
@@ -218,7 +231,7 @@ function createCake() {
     cakeTop.receiveShadow = true;
     state.cakeGroup.add(cakeBase, cakeTop);
 
-    const pearlGeo = new THREE.SphereGeometry(0.03, 16, 16);
+    const pearlGeo = new THREE.SphereGeometry(0.03, config.geometryDetail / 4, config.geometryDetail / 4);
     const pearlMat = new THREE.MeshStandardMaterial({ color: 0xFFB6C1 });
     for (let i = 0; i < 360; i += 15) {
         const angle = THREE.MathUtils.degToRad(i);
@@ -240,13 +253,13 @@ function createCake() {
 }
 
 function createCandle() {
-    const candleGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.2, 16);
+    const candleGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.2, config.geometryDetail / 4);
     const candleMat = new THREE.MeshStandardMaterial({ color: 0xF5F5DC });
     const candle = new THREE.Mesh(candleGeo, candleMat);
     candle.position.set(0, 1.1, 0);
     state.cakeGroup.add(candle);
 
-    const flameGeo = new THREE.ConeGeometry(0.03, 0.1, 16);
+    const flameGeo = new THREE.ConeGeometry(0.03, 0.1, config.geometryDetail / 4);
     const flameMat = new THREE.MeshBasicMaterial({ color: 0xFFA500, emissive: 0xFF4500, emissiveIntensity: 2 });
     state.flame = new THREE.Mesh(flameGeo, flameMat);
     state.flame.position.set(0, 1.25, 0);
@@ -311,7 +324,7 @@ function createLilyOfTheValley() {
         new THREE.Vector3(0.1, 0.4, 0),
         new THREE.Vector3(-0.1, 0.8, 0.1)
     ]);
-    const stemGeo = new THREE.TubeGeometry(stemCurve, 20, 0.02, 8, false);
+    const stemGeo = new THREE.TubeGeometry(stemCurve, 20, 0.02, Math.round(config.geometryDetail / 8), false);
     const stemMat = new THREE.MeshStandardMaterial({ color: 0x556B2F });
     const stem = new THREE.Mesh(stemGeo, stemMat);
     stem.castShadow = true;
@@ -324,7 +337,7 @@ function createLilyOfTheValley() {
         new THREE.Vector2(0.02, 0.1),
         new THREE.Vector2(0.00, 0.1)
     ];
-    const bellGeo = new THREE.LatheGeometry(bellProfile, 12);
+    const bellGeo = new THREE.LatheGeometry(bellProfile, Math.round(config.geometryDetail / 4));
     const bellMat = new THREE.MeshStandardMaterial({ color: 0xFFFFF0 });
 
     const numBells = 5;
@@ -354,7 +367,7 @@ function createVaseWithFlowers() {
         new THREE.Vector2(0.1, 0.2), 
         new THREE.Vector2(0.12, 0.4)
     ];
-    const vaseGeo = new THREE.LatheGeometry(vaseProfile, 32);
+    const vaseGeo = new THREE.LatheGeometry(vaseProfile, Math.round(config.geometryDetail / 2));
     const vaseMat = new MeshPhysicalMaterial({
         color: 0xadd8e6,
         transmission: 1.0,
@@ -418,8 +431,10 @@ function setupPostProcessing() {
     state.composer.addPass(new RenderPass(state.scene, state.camera));
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), config.bloom.strength, config.bloom.radius, config.bloom.threshold);
     state.composer.addPass(bloomPass);
-    const bokehPass = new BokehPass(state.scene, state.camera, { focus: config.bokeh.focus, aperture: config.bokeh.aperture, maxblur: config.bokeh.maxblur });
-    state.composer.addPass(bokehPass);
+    if (!config.isMobile) {
+        const bokehPass = new BokehPass(state.scene, state.camera, { focus: config.bokeh.focus, aperture: config.bokeh.aperture, maxblur: config.bokeh.maxblur });
+        state.composer.addPass(bokehPass);
+    }
 }
 
 function setupEventListeners() {
