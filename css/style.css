@@ -61,3 +61,38 @@ canvas {
         font-size: 2em;
     }
 }
+
+#loading-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+#loading-progress-bar-container {
+    width: 80%;
+    max-width: 300px;
+    height: 10px;
+    border: 1px solid white;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#loading-progress-bar {
+    width: 0;
+    height: 100%;
+    background-color: #FF69B4;
+}
+
+#loading-screen p {
+    margin-top: 10px;
+    font-size: 1.2em;
+    color: white;
+}

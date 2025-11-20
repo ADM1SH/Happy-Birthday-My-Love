@@ -60,6 +60,7 @@ const state = {
     mouse: new THREE.Vector2(),
     intersectedFrame: null,
     celebrationTimeout: null,
+    loadingManager: null,
     audio: {
         listener: null,
         blowSound: null,
@@ -77,6 +78,22 @@ init();
 animate();
 
 function init() {
+    state.loadingManager = new THREE.LoadingManager();
+    const progressBar = document.getElementById('loading-progress-bar');
+    const loadingScreen = document.getElementById('loading-screen');
+
+    state.loadingManager.onProgress = (url, itemsLoaded, itemsTotal) => {
+        progressBar.style.width = (itemsLoaded / itemsTotal) * 100 + '%';
+    };
+
+    state.loadingManager.onLoad = () => {
+        loadingScreen.style.display = 'none';
+    };
+
+    state.loadingManager.onError = (url) => {
+        console.error('There was an error loading ' + url);
+    };
+
     setupScene();
     setupCamera();
     setupRenderer();
@@ -119,7 +136,7 @@ function setupAudio() {
 }
 
 function loadAudio() {
-    const audioLoader = new THREE.AudioLoader();
+    const audioLoader = new THREE.AudioLoader(state.loadingManager);
     state.audio.blowSound = new THREE.Audio(state.audio.listener);
     audioLoader.load('assets/audio/blow.mp3', buffer => state.audio.blowSound.setBuffer(buffer));
     state.audio.confettiSound = new THREE.Audio(state.audio.listener);
@@ -219,7 +236,7 @@ function createCake() {
     cakeBase.receiveShadow = true;
     
     const cakeTopGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.8, config.geometryDetail);
-    const textureLoader = new THREE.TextureLoader();
+    const textureLoader = new THREE.TextureLoader(state.loadingManager);
     const icingTexture = textureLoader.load('assets/images/IMG_2376.jpeg');
     icingTexture.wrapS = THREE.RepeatWrapping;
     icingTexture.repeat.x = 3;
@@ -270,7 +287,7 @@ function createCandle() {
 }
 
 function createPhotoFrames() {
-    const textureLoaderPhoto = new THREE.TextureLoader();
+    const textureLoaderPhoto = new THREE.TextureLoader(state.loadingManager);
     const photoTextures = [
         textureLoaderPhoto.load('assets/images/Screenshot 2025-11-20 at 10.39.25 AM.png'),
         textureLoaderPhoto.load('assets/images/IMG_2520.jpeg'),
@@ -506,7 +523,7 @@ function startCelebration() {
     }
     gsap.to(state.sparkles.material, { size: 0.04, duration: 1.5, ease: "power2.out" }).yoyo(true).repeat(1);
 
-    const fontLoader = new FontLoader();
+    const fontLoader = new FontLoader(state.loadingManager);
     fontLoader.load('https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json', 
         font => {
             const textGeo = new TextGeometry('18', { font, size: 0.5, height: 0.1 });
