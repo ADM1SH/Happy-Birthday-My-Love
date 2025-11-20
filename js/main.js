@@ -177,6 +177,15 @@ function init() {
     candleLight.position.set(0, 1.3, 0); // Adjusted for taller cake
 
     // Photo Frames
+    const textureLoaderPhoto = new THREE.TextureLoader();
+    const photoTextures = [
+        textureLoaderPhoto.load('Screenshot 2025-11-20 at 10.39.25 AM.png'),
+        textureLoaderPhoto.load('IMG_2520.jpeg'),
+        textureLoaderPhoto.load('IMG_3146.JPG'),
+        textureLoaderPhoto.load('IMG_2854.JPG'),
+        textureLoaderPhoto.load('IMG_2847.jpeg')
+    ];
+
     const framePositions = [
         { x: 1.2, y: 0.9, z: 0.8, ry: -Math.PI / 8, rx: -0.15 },
         { x: -1.2, y: 0.9, z: 0.8, ry: Math.PI / 8, rx: -0.15 },
@@ -184,18 +193,37 @@ function init() {
         { x: -0.7, y: 0.9, z: 1.3, ry: Math.PI / 16, rx: -0.15 },
         { x: 0, y: 0.9, z: 1.5, ry: 0, rx: -0.15 }
     ];
-    const frameGeo = new THREE.BoxGeometry(0.5, 0.7, 0.05);
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-    framePositions.forEach(pos => {
-        const frame = new THREE.Mesh(frameGeo, frameMat.clone());
-        frame.position.set(pos.x, pos.y, pos.z);
-        frame.rotation.y = pos.ry;
-        frame.rotation.x = pos.rx || 0; // Add x rotation for flat frames
-        frame.castShadow = true;
-        frame.userData.baseY = pos.y;
-        scene.add(frame);
-        photoFrames.push(frame);
-    });
+
+    const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.7, metalness: 0.2 }); // Wood-like material
+
+    for (const [i, pos] of framePositions.entries()) {
+        const frameGroup = new THREE.Group();
+
+        // Create the frame border
+        const frameBorderGeo = new THREE.BoxGeometry(0.55, 0.75, 0.05);
+        const frameBorder = new THREE.Mesh(frameBorderGeo, frameMaterial);
+        frameBorder.castShadow = true;
+        frameGroup.add(frameBorder);
+
+        // Create the picture plane
+        const pictureGeo = new THREE.PlaneGeometry(0.5, 0.7);
+        const pictureMat = new THREE.MeshStandardMaterial({
+            map: photoTextures[i % photoTextures.length], // Use a texture
+            side: THREE.DoubleSide
+        });
+        const picture = new THREE.Mesh(pictureGeo, pictureMat);
+        picture.position.z = 0.026; // Position it slightly inside the frame
+        frameGroup.add(picture);
+
+        // Position and rotate the whole group
+        frameGroup.position.set(pos.x, pos.y, pos.z);
+        frameGroup.rotation.y = pos.ry;
+        frameGroup.rotation.x = pos.rx || 0;
+        frameGroup.userData.baseY = pos.y;
+
+        scene.add(frameGroup);
+        photoFrames.push(frameGroup); // Add the group to the array
+    }
 
 function createLilyOfTheValley() {
         const group = new THREE.Group();
@@ -290,14 +318,15 @@ function createLilyOfTheValley() {
         { x: 1.8, y: 0.83, z: -0.5, s: 0.7 }, // y = 0.55 + 0.4 * 0.7
         { x: -1.8, y: 0.83, z: -0.5, s: 0.7 }, // y = 0.55 + 0.4 * 0.7
         { x: 0, y: 0.91, z: -2.2, s: 0.9 }  // y = 0.55 + 0.4 * 0.9
-    ];vasePositions.forEach(pos => {
-    const vaseOfFlowers = createVaseWithFlowers();
-    vaseOfFlowers.position.set(pos.x, pos.y, pos.z);
-    vaseOfFlowers.scale.set(pos.s, pos.s, pos.s);
-    vaseOfFlowers.userData.baseY = pos.y;
-    scene.add(vaseOfFlowers);
-    flowers.push(vaseOfFlowers); // Re-using the 'flowers' array for the vase groups
-});
+    ];
+    for (const pos of vasePositions) {
+        const vaseOfFlowers = createVaseWithFlowers();
+        vaseOfFlowers.position.set(pos.x, pos.y, pos.z);
+        vaseOfFlowers.scale.set(pos.s, pos.s, pos.s);
+        vaseOfFlowers.userData.baseY = pos.y;
+        scene.add(vaseOfFlowers);
+        flowers.push(vaseOfFlowers); // Re-using the 'flowers' array for the vase groups
+    }
 
     // Particles
     const sparkleCount = isMobile ? 250 : 500;
@@ -413,17 +442,17 @@ function startCelebration() {
     if (confettiSound && confettiSound.buffer) confettiSound.play();
     if (sparkleSound && sparkleSound.buffer) sparkleSound.play();
     createConfetti();
-    flowers.forEach(vaseGroup => { // 'flowers' array now contains vaseGroups
-        vaseGroup.children.forEach(item => {
+    for (const vaseGroup of flowers) { // 'flowers' array now contains vaseGroups
+        for (const item of vaseGroup.children) {
             if (item.type === 'Group') { // This is a lily of the valley group
-                item.children.forEach(child => { // This is a stem or a bell
+                for (const child of item.children) { // This is a stem or a bell
                     if (child.isMesh && child.material.color.getHexString() === 'ffffff') { // This is a bell
                         gsap.to(child.material.emissive, { r: 0.8, g: 0.8, b: 0.2, duration: 1.5, ease: "power2.out" });
                     }
-                });
+                }
             }
-        });
-    });
+        }
+    }
     gsap.to(sparkles.material, { size: 0.04, duration: 1.5, ease: "power2.out" }).yoyo(true).repeat(1);
 
     const fontLoader = new FontLoader();
@@ -528,17 +557,34 @@ function updateMouse(x, y) {
 
 function checkIntersection() {
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(photoFrames);
+    const intersects = raycaster.intersectObjects(photoFrames.flatMap(g => g.children));
+    
+    let intersectedGroup = null;
     if (intersects.length > 0) {
-        if (intersectedFrame !== intersects[0].object) {
-            if (intersectedFrame) intersectedFrame.material.color.set(0xffffff);
-            intersectedFrame = intersects[0].object;
-            intersectedFrame.material.color.set(0xffc0cb);
+        const firstIntersected = intersects[0].object;
+        let parent = firstIntersected.parent;
+        while(parent) {
+            if (parent.isGroup && photoFrames.includes(parent)) {
+                intersectedGroup = parent;
+                break;
+            }
+            parent = parent.parent;
         }
-    } else {
-        if (intersectedFrame) intersectedFrame.material.color.set(0xffffff);
-        intersectedFrame = null;
     }
+
+    // Reset all frames first, then highlight the intersected one
+    for (const frame of photoFrames) {
+        const border = frame.children.find(c => c.geometry.type === 'BoxGeometry');
+        if (border) {
+            if (frame === intersectedGroup) {
+                border.material.color.set(0xffc0cb); // Pink on hover
+            } else {
+                border.material.color.set(0x8B4513); // Original wood color
+            }
+        }
+    }
+
+    intersectedFrame = intersectedGroup;
 }
 
 function animate() {
@@ -548,11 +594,24 @@ function animate() {
 
     // Animations
     if (cakeGroup) cakeGroup.position.y = cakeBaseY + Math.sin(elapsedTime * 0.5) * 0.05;
-    // Photo frame animation disabled to keep them static.
-    flowers.forEach((f, i) => {
+    
+    // Photo frame hover effect
+    for (const frame of photoFrames) {
+        const isIntersected = (intersectedFrame === frame);
+        const targetScale = isIntersected ? 1.1 : 1;
+        gsap.to(frame.scale, {
+            x: targetScale,
+            y: targetScale,
+            z: targetScale,
+            duration: 0.3,
+            ease: "power2.out"
+        });
+    }
+
+    for (const [i, f] of flowers.entries()) {
         f.position.y = f.userData.baseY + Math.sin(elapsedTime * 0.4 + i) * 0.05;
         f.rotation.y += Math.sin(elapsedTime * 0.3 + i) * 0.002;
-    });
+    }
     if (flame && flame.visible) {
         const flicker = Math.random() * 0.08;
         flame.scale.y = 1 + Math.sin(elapsedTime * 30) * 0.2 + flicker;
