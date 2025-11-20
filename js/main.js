@@ -190,7 +190,7 @@ function createFloor() {
     let floor;
     if (config.isMobile) {
         const floorMat = new THREE.MeshStandardMaterial({
-            color: 0x222222,
+            color: 0x000000,
             roughness: 0.8,
             metalness: 0.2
         });
