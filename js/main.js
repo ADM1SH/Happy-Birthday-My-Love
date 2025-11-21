@@ -14,17 +14,17 @@ const config = {
     isMobile: window.innerWidth <= 768,
     cakeBaseY: 0.55,
     lightIntensity: {
-        base: 2.0,
-        hemisphere: 1.5,
-        directional: 1.3,
-        point1: 1.5,
-        point2: 1.5,
+        base: 2.2,
+        hemisphere: 1.6,
+        directional: 1.4,
+        point1: 1.7,
+        point2: 1.7,
     },
     shadowMapSize: window.innerWidth <= 768 ? 1024 : 2048,
     bloom: {
-        strength: window.innerWidth <= 768 ? 0.4 : 0.3,
-        radius: window.innerWidth <= 768 ? 0.2 : 0.3,
-        threshold: 0.1,
+        strength: window.innerWidth <= 768 ? 0.6 : 0.45,
+        radius: window.innerWidth <= 768 ? 0.25 : 0.35,
+        threshold: 0.08,
     },
     bokeh: {
         focus: 4.5,
@@ -126,6 +126,8 @@ function setupRenderer() {
     state.renderer.setSize(window.innerWidth, window.innerHeight);
     state.renderer.setPixelRatio(config.pixelRatio);
     state.renderer.shadowMap.enabled = true;
+    state.renderer.outputEncoding = THREE.sRGBEncoding;
+    state.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     document.body.appendChild(state.renderer.domElement);
 }
 
