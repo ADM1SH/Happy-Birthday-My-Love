@@ -84,13 +84,34 @@ function init() {
     state.loadingManager = new THREE.LoadingManager();
     const progressBar = document.getElementById('loading-progress-bar');
     const loadingScreen = document.getElementById('loading-screen');
+    const loadingMessage = document.getElementById('loading-message');
+
+    const loadingMessages = [
+        "Baking the cake...",
+        "Placing the photos...",
+        "Lighting the candles...",
+        "Blowing up the balloons...",
+        "Getting everything ready..."
+    ];
+
+    const startTime = Date.now();
+    const minDisplayTime = 3000; // 3 seconds
 
     state.loadingManager.onProgress = (url, itemsLoaded, itemsTotal) => {
-        progressBar.style.width = (itemsLoaded / itemsTotal) * 100 + '%';
+        const progress = itemsLoaded / itemsTotal;
+        progressBar.style.width = progress * 100 + '%';
+
+        const messageIndex = Math.floor(progress * (loadingMessages.length - 1));
+        loadingMessage.textContent = loadingMessages[messageIndex];
     };
 
     state.loadingManager.onLoad = () => {
-        loadingScreen.style.display = 'none';
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
+
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+        }, remainingTime);
     };
 
     state.loadingManager.onError = (url) => {
