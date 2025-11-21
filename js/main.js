@@ -10,21 +10,23 @@ import { Reflector } from 'three/addons/objects/Reflector.js';
 import { MeshPhysicalMaterial } from 'three';
 
 // --- CONFIGURATION ---
+const isMobile = window.innerWidth <= 768;
+
 const config = {
-    isMobile: window.innerWidth <= 768,
+    isMobile: isMobile,
     cakeBaseY: 0.55,
     lightIntensity: {
-        base: 2.2,
-        hemisphere: 1.6,
-        directional: 1.4,
-        point1: 1.7,
-        point2: 1.7,
+        base: isMobile ? 1.8 : 2.2,
+        hemisphere: isMobile ? 1.4 : 1.6,
+        directional: isMobile ? 1.2 : 1.4,
+        point1: isMobile ? 1.5 : 1.7,
+        point2: isMobile ? 1.5 : 1.7,
     },
     shadowMapSize: window.innerWidth <= 768 ? 1024 : 2048,
     bloom: {
-        strength: window.innerWidth <= 768 ? 0.6 : 0.45,
-        radius: window.innerWidth <= 768 ? 0.25 : 0.35,
-        threshold: 0.08,
+        strength: isMobile ? 0.4 : 0.45,
+        radius: isMobile ? 0.2 : 0.35,
+        threshold: 0.1,
     },
     bokeh: {
         focus: 4.5,
@@ -56,6 +58,7 @@ const state = {
     confettiParticles: null,
     photoFrames: [],
     flowers: [],
+    balloons: [],
     raycaster: new THREE.Raycaster(),
     mouse: new THREE.Vector2(),
     intersectedFrame: null,
@@ -105,6 +108,7 @@ function init() {
     createCake();
     createPhotoFrames();
     createVasesWithFlowers();
+    createBalloons();
     createSparkles();
     setupPostProcessing();
     setupEventListeners();
@@ -118,7 +122,11 @@ function setupScene() {
 
 function setupCamera() {
     state.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    state.camera.position.set(0, 2.5, 3.5);
+    if (config.isMobile) {
+        state.camera.position.set(0, 2.5, 4.5); // Move camera back on mobile
+    } else {
+        state.camera.position.set(0, 2.5, 3.5);
+    }
 }
 
 function setupRenderer() {
@@ -189,25 +197,13 @@ function setupLights() {
 
 function createFloor() {
     const floorGeometry = new THREE.PlaneGeometry(10, 10);
-    let floor;
-    if (config.isMobile) {
-        const floorMat = new THREE.MeshStandardMaterial({
-            color: 0x000000,
-            roughness: 0.8,
-            metalness: 0.2,
-            transparent: true,
-            opacity: 0
-        });
-        floor = new THREE.Mesh(floorGeometry, floorMat);
-        floor.receiveShadow = true;
-    } else {
-        floor = new Reflector(floorGeometry, {
-            clipBias: 0.003,
-            textureWidth: window.innerWidth * config.pixelRatio,
-            textureHeight: window.innerHeight * config.pixelRatio,
-            color: 0x777777
-        });
-    }
+    const floorMat = new THREE.MeshStandardMaterial({
+        color: 0x111111,
+        roughness: 0.6,
+        metalness: 0.4
+    });
+    const floor = new THREE.Mesh(floorGeometry, floorMat);
+    floor.receiveShadow = true;
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
     state.scene.add(floor);
@@ -331,6 +327,7 @@ function createPhotoFrames() {
         frameGroup.rotation.y = pos.ry;
         frameGroup.rotation.x = pos.rx || 0;
         frameGroup.userData.baseY = pos.y;
+        frameGroup.userData.photoTexture = photoTextures[i % photoTextures.length];
 
         state.scene.add(frameGroup);
         state.photoFrames.push(frameGroup);
@@ -432,6 +429,40 @@ function createVasesWithFlowers() {
         vaseOfFlowers.userData.baseY = pos.y;
         state.scene.add(vaseOfFlowers);
         state.flowers.push(vaseOfFlowers);
+    }
+}
+
+function createBalloons() {
+    const balloonColors = [0xff69b4, 0xffd700, 0x00ffff, 0x9400d3, 0xffa500, 0x00ff00];
+    const balloonGeo = new THREE.SphereGeometry(0.3, 32, 32);
+
+    for (let i = 0; i < 15; i++) {
+        const balloonMat = new THREE.MeshPhysicalMaterial({
+            color: balloonColors[Math.floor(Math.random() * balloonColors.length)],
+            metalness: 0.5,
+            roughness: 0.1,
+            transparent: true,
+            opacity: 0.8
+        });
+        const balloon = new THREE.Mesh(balloonGeo, balloonMat);
+
+        const stringGeo = new THREE.CylinderGeometry(0.01, 0.01, 1.5, 8);
+        const stringMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const string = new THREE.Mesh(stringGeo, stringMat);
+        string.position.y = -0.9;
+        balloon.add(string);
+
+        balloon.position.set(
+            (Math.random() - 0.5) * 15,
+            Math.random() * 2 + 2,
+            (Math.random() - 0.5) * 10 - 5
+        );
+        balloon.userData.baseY = balloon.position.y;
+        balloon.userData.speed = Math.random() * 0.2 + 0.1;
+        balloon.userData.phase = Math.random() * Math.PI * 2;
+
+        state.scene.add(balloon);
+        state.balloons.push(balloon);
     }
 }
 
@@ -620,7 +651,38 @@ function onMouseMove(event) { updateMouse(event.clientX, event.clientY); }
 function onTouchStart(event) { if (event.touches.length > 0) updateMouse(event.touches[0].clientX, event.touches[0].clientY); }
 function onClick() {
     state.raycaster.setFromCamera(state.mouse, state.camera);
-    if (state.raycaster.intersectObject(state.flame).length > 0) blowOutCandle();
+
+    // Check for flame intersection
+    if (state.raycaster.intersectObject(state.flame).length > 0) {
+        blowOutCandle();
+        return; // Don't check for other intersections if the flame is clicked
+    }
+
+    // Check for photo frame intersection
+    const intersects = state.raycaster.intersectObjects(state.photoFrames, true);
+    if (intersects.length > 0) {
+        let object = intersects[0].object;
+        while (object.parent && !state.photoFrames.includes(object)) {
+            object = object.parent;
+        }
+        if (state.photoFrames.includes(object)) {
+            showPhotoModal(object.userData.photoTexture);
+        }
+    }
+}
+
+function showPhotoModal(texture) {
+    const modal = document.getElementById('photo-modal');
+    const enlargedPhoto = document.getElementById('enlarged-photo');
+
+    enlargedPhoto.src = texture.image.src;
+
+    modal.style.display = 'flex';
+
+    const closeModal = document.getElementById('close-modal');
+    closeModal.onclick = () => {
+        modal.style.display = 'none';
+    };
 }
 function updateMouse(x, y) {
     state.mouse.x = (x / window.innerWidth) * 2 - 1;
@@ -723,6 +785,12 @@ function animate() {
 
         f.rotation.y += Math.sin(elapsedTime * 0.3 + i) * 0.002;
 
+    }
+
+    for (const balloon of state.balloons) {
+        balloon.rotation.y += 0.001; // Slow rotation
+        const scale = 1 + Math.sin(elapsedTime * balloon.userData.speed + balloon.userData.phase) * 0.05;
+        balloon.scale.set(scale, scale, scale);
     }
 
     if (state.flame && state.flame.visible) {
