@@ -59,6 +59,7 @@ const state = {
     photoFrames: [],
     flowers: [],
     balloons: [],
+    giftBox: null,
     raycaster: new THREE.Raycaster(),
     mouse: new THREE.Vector2(),
     intersectedFrame: null,
@@ -130,6 +131,7 @@ function init() {
     createPhotoFrames();
     createVasesWithFlowers();
     createBalloons();
+    createGiftBox();
     createSparkles();
     setupPostProcessing();
     setupEventListeners();
@@ -318,11 +320,11 @@ function createPhotoFrames() {
     ];
 
     const framePositions = [
-        { x: 1.2, y: 0.9, z: 0.8, ry: -Math.PI / 8, rx: -0.15 },
-        { x: -1.2, y: 0.9, z: 0.8, ry: Math.PI / 8, rx: -0.15 },
-        { x: 0.7, y: 0.9, z: 1.3, ry: -Math.PI / 16, rx: -0.15 },
-        { x: -0.7, y: 0.9, z: 1.3, ry: Math.PI / 16, rx: -0.15 },
-        { x: 0, y: 0.9, z: 1.5, ry: 0, rx: -0.15 }
+        { x: 0, y: 2.5, z: -2.5, ry: 0, rx: 0 },
+        { x: 2, y: 1.5, z: -2, ry: -Math.PI / 8, rx: 0 },
+        { x: -2, y: 1.5, z: -2, ry: Math.PI / 8, rx: 0 },
+        { x: 3, y: 1.2, z: -1, ry: -Math.PI / 4, rx: 0 },
+        { x: -3, y: 1.2, z: -1, ry: Math.PI / 4, rx: 0 }
     ];
 
     const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.7, metalness: 0.2 });
@@ -355,7 +357,7 @@ function createPhotoFrames() {
     }
 }
 
-function createLilyOfTheValley() {
+function createLilyOfTheValley(color) {
     const group = new THREE.Group();
 
     const stemCurve = new THREE.CatmullRomCurve3([
@@ -377,7 +379,7 @@ function createLilyOfTheValley() {
         new THREE.Vector2(0.00, 0.1)
     ];
     const bellGeo = new THREE.LatheGeometry(bellProfile, Math.round(config.geometryDetail / 4));
-    const bellMat = new THREE.MeshStandardMaterial({ color: 0xFFFFF0 });
+    const bellMat = new THREE.MeshStandardMaterial({ color: color || 0xFFFFF0 });
 
     const numBells = 5;
     for (let i = 0; i < numBells; i++) {
@@ -407,30 +409,33 @@ function createVaseWithFlowers() {
         new THREE.Vector2(0.12, 0.4)
     ];
     const vaseGeo = new THREE.LatheGeometry(vaseProfile, Math.round(config.geometryDetail / 2));
-    const vaseMat = new MeshPhysicalMaterial({
-        color: 0xadd8e6,
-        transmission: 1.0,
-        roughness: 0.3,
-        metalness: 0.0,
-        ior: 1.5,
-        thickness: 0.1
+    const vaseMat = new THREE.MeshStandardMaterial({
+        color: 0xB2DFDB, // A nice teal/cyan color
+        roughness: 0.2,
+        metalness: 0.1
     });
     const vase = new THREE.Mesh(vaseGeo, vaseMat);
     vase.castShadow = true;
     vase.receiveShadow = true;
     vaseGroup.add(vase);
 
-    const lily1 = createLilyOfTheValley();
+    const lily1 = createLilyOfTheValley(0xFFE4E1); // Misty Rose
     lily1.scale.set(0.6, 0.6, 0.6);
     lily1.position.set(0.05, 0.15, 0);
     lily1.rotation.y = Math.random() * Math.PI;
     vaseGroup.add(lily1);
 
-    const lily2 = createLilyOfTheValley();
+    const lily2 = createLilyOfTheValley(0xFFFACD); // Lemon Chiffon
     lily2.scale.set(0.6, 0.6, 0.6);
     lily2.position.set(-0.05, 0.15, 0.05);
     lily2.rotation.y = Math.random() * Math.PI;
     vaseGroup.add(lily2);
+
+    const lily3 = createLilyOfTheValley(); // Default white
+    lily3.scale.set(0.5, 0.5, 0.5);
+    lily3.position.set(0, 0.1, -0.05);
+    lily3.rotation.y = Math.random() * Math.PI;
+    vaseGroup.add(lily3);
     
     return vaseGroup;
 }
@@ -485,6 +490,53 @@ function createBalloons() {
         state.scene.add(balloon);
         state.balloons.push(balloon);
     }
+}
+
+function createGiftBox() {
+    const boxSize = 0.3;
+    const boxGroup = new THREE.Group();
+
+    // Box base
+    const boxBaseGeo = new THREE.BoxGeometry(boxSize, boxSize / 2, boxSize);
+    const boxBaseMat = new THREE.MeshStandardMaterial({ color: 0xff69b4 });
+    const boxBase = new THREE.Mesh(boxBaseGeo, boxBaseMat);
+    boxBase.position.y = boxSize / 4;
+    boxGroup.add(boxBase);
+
+    // Box lid
+    const lidGeo = new THREE.BoxGeometry(boxSize * 1.05, boxSize / 4, boxSize * 1.05);
+    const lidMat = new THREE.MeshStandardMaterial({ color: 0xffd700 });
+    const lid = new THREE.Mesh(lidGeo, lidMat);
+    lid.position.y = boxSize / 2 + boxSize / 8;
+    boxGroup.add(lid);
+
+    // Ribbon
+    const ribbonGeo = new THREE.BoxGeometry(boxSize * 1.06, boxSize / 3.9, boxSize * 0.1);
+    const ribbonMat = new THREE.MeshStandardMaterial({ color: 0xffd700 });
+    const ribbon1 = new THREE.Mesh(ribbonGeo, ribbonMat);
+    const ribbon2 = new THREE.Mesh(ribbonGeo, ribbonMat);
+    ribbon2.rotation.y = Math.PI / 2;
+    lid.add(ribbon1);
+    lid.add(ribbon2);
+
+
+    boxGroup.position.set(0, 0.65, 1.5);
+    state.scene.add(boxGroup);
+    state.giftBox = boxGroup;
+    state.giftBox.lid = lid; // store the lid for animation
+
+    const fontLoader = new FontLoader(state.loadingManager);
+    fontLoader.load('https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json', 
+        font => {
+            const textGeo = new TextGeometry('Open Me!', { font, size: 0.1, height: 0.02 });
+            textGeo.center();
+            const textMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 1 });
+            const sign = new THREE.Mesh(textGeo, textMat);
+            sign.position.set(0, 1, 1.5);
+            state.scene.add(sign);
+            state.giftBox.sign = sign; // Store the sign for animation/removal
+        }
+    );
 }
 
 function createSparkles() {
@@ -675,28 +727,76 @@ function onClick() {
 
     // Check for flame intersection
     if (state.raycaster.intersectObject(state.flame).length > 0) {
-        blowOutCandle();
-        return; // Don't check for other intersections if the flame is clicked
+        if (state.giftBox && !state.giftBox.opened) {
+            showPhotoModal(null, "You have a gift to open first! 🎁");
+        } else {
+            blowOutCandle();
+        }
+        return;
     }
 
     // Check for photo frame intersection
-    const intersects = state.raycaster.intersectObjects(state.photoFrames, true);
-    if (intersects.length > 0) {
-        let object = intersects[0].object;
+    const intersectsPhotos = state.raycaster.intersectObjects(state.photoFrames, true);
+    if (intersectsPhotos.length > 0) {
+        let object = intersectsPhotos[0].object;
         while (object.parent && !state.photoFrames.includes(object)) {
             object = object.parent;
         }
         if (state.photoFrames.includes(object)) {
-            showPhotoModal(object.userData.photoTexture);
+            showPhotoModal(object.userData.photoTexture); // No message for photos
+        }
+        return;
+    }
+
+    // Check for gift box intersection
+    if (state.giftBox) {
+        const intersectsGift = state.raycaster.intersectObject(state.giftBox, true);
+        if (intersectsGift.length > 0) {
+            openGiftBox();
         }
     }
 }
 
-function showPhotoModal(texture) {
+function openGiftBox() {
+    if (state.giftBox.opened) return;
+
+    if (state.giftBox.sign) {
+        gsap.to(state.giftBox.sign.scale, { x: 0, y: 0, z: 0, duration: 0.5, onComplete: () => {
+            state.scene.remove(state.giftBox.sign);
+        }});
+    }
+
+    gsap.to(state.giftBox.lid.position, { y: "+=0.3", duration: 1 });
+    gsap.to(state.giftBox.lid.rotation, { z: Math.PI / 2, duration: 1, delay: 0.5 });
+
+    setTimeout(() => {
+        showPhotoModal(null, "Birthday presents await for you my love ❤️");
+
+        // Disappear animation
+        gsap.to(state.giftBox.scale, { x: 0, y: 0, z: 0, duration: 1, delay: 1, onComplete: () => {
+            state.scene.remove(state.giftBox);
+            state.giftBox = null;
+        }});
+
+    }, 1500);
+
+    state.giftBox.opened = true;
+}
+
+function showPhotoModal(texture, message = '') {
     const modal = document.getElementById('photo-modal');
     const enlargedPhoto = document.getElementById('enlarged-photo');
+    const photoMessage = document.getElementById('photo-message');
 
-    enlargedPhoto.src = texture.image.src;
+    if (texture) {
+        enlargedPhoto.src = texture.image.src;
+        enlargedPhoto.style.display = 'block';
+    } else {
+        enlargedPhoto.style.display = 'none';
+    }
+
+    photoMessage.textContent = message;
+    photoMessage.style.fontSize = texture ? '1.2em' : '2em';
 
     modal.style.display = 'flex';
 
@@ -812,6 +912,11 @@ function animate() {
         balloon.rotation.y += 0.001; // Slow rotation
         const scale = 1 + Math.sin(elapsedTime * balloon.userData.speed + balloon.userData.phase) * 0.05;
         balloon.scale.set(scale, scale, scale);
+    }
+
+    if (state.giftBox && state.giftBox.sign && !state.giftBox.opened) {
+        const scale = 1 + Math.sin(elapsedTime * 5) * 0.1;
+        state.giftBox.sign.scale.set(scale, scale, scale);
     }
 
     if (state.flame && state.flame.visible) {

@@ -89,12 +89,14 @@ canvas {
     width: 0;
     height: 100%;
     background-color: #FF69B4;
+    animation: glow 2s infinite;
 }
 
-#loading-screen p {
+#loading-message {
     margin-top: 10px;
     font-size: 1.2em;
     color: white;
+    animation: pulsate 2s infinite;
 }
 
 #photo-modal {
@@ -125,6 +127,12 @@ canvas {
     border-radius: 5px;
 }
 
+#photo-message {
+    font-size: 1.2em;
+    color: white;
+    margin-top: 15px;
+}
+
 #close-modal {
     margin-top: 15px;
     padding: 10px 20px;
@@ -133,4 +141,16 @@ canvas {
     color: white;
     cursor: pointer;
     border-radius: 5px;
+}
+
+@keyframes pulsate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes glow {
+    0% { box-shadow: 0 0 5px #FF69B4; }
+    50% { box-shadow: 0 0 20px #FF69B4; }
+    100% { box-shadow: 0 0 5px #FF69B4; }
 }
