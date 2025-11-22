@@ -632,9 +632,12 @@ function startCelebration() {
     gsap.to(state.camera.position, { z: 3.5, duration: 3, ease: "power2.inOut" });
     const finalMsgContainer = document.getElementById('final-message-container');
     const finalMsg = document.getElementById('final-message');
+    const subMsg = document.getElementById('sub-message');
     finalMsg.textContent = "Happy 18th Birthday My Love ❤️";
+    subMsg.textContent = "(How does it feel like to date a minor 🥰)";
     finalMsgContainer.style.display = 'block';
     gsap.to(finalMsg, { opacity: 1, y: 0, duration: 1.5, delay: 2 });
+    gsap.to(subMsg, { opacity: 1, y: 0, duration: 1.5, delay: 2.5 });
 }
 
 function createParticleSystem(config) {

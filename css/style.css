@@ -53,6 +53,16 @@ canvas {
     transition: opacity 1.5s ease-out, transform 1.5s ease-out;
 }
 
+#sub-message {
+    font-size: 1.5em;
+    font-weight: normal;
+    color: #FFC0CB; /* Pink */
+    text-shadow: 0 0 10px #FFC0CB, 0 0 20px #FFC0CB;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 1.5s ease-out, transform 1.5s ease-out;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     #title {
