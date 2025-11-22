@@ -161,7 +161,7 @@ function setupRenderer() {
     state.renderer.setPixelRatio(config.pixelRatio);
     state.renderer.shadowMap.enabled = true;
     state.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    state.renderer.outputEncoding = THREE.sRGBEncoding;
+    state.renderer.outputColorSpace = THREE.SRGBColorSpace;
     state.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     document.body.appendChild(state.renderer.domElement);
 }
