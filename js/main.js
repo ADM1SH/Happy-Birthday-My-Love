@@ -4,6 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -133,7 +134,7 @@ function init() {
     createBalloons();
     createGiftBox();
     createSparkles();
-    // setupPostProcessing();
+    setupPostProcessing();
     setupEventListeners();
     setupUI();
 }
@@ -411,8 +412,10 @@ function createVaseWithFlowers() {
     const vaseGeo = new THREE.LatheGeometry(vaseProfile, Math.round(config.geometryDetail / 2));
     const vaseMat = new THREE.MeshStandardMaterial({
         color: 0xB2DFDB, // A nice teal/cyan color
-        roughness: 0.2,
-        metalness: 0.1
+        roughness: 0.1,
+        metalness: 0.2,
+        transparent: true,
+        opacity: 0.5
     });
     const vase = new THREE.Mesh(vaseGeo, vaseMat);
     vase.castShadow = true;
@@ -556,6 +559,10 @@ function setupPostProcessing() {
     state.composer.addPass(new RenderPass(state.scene, state.camera));
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), config.bloom.strength, config.bloom.radius, config.bloom.threshold);
     state.composer.addPass(bloomPass);
+
+    const smaaPass = new SMAAPass( window.innerWidth * state.renderer.getPixelRatio(), window.innerHeight * state.renderer.getPixelRatio() );
+    state.composer.addPass(smaaPass);
+
     if (!config.isMobile) {
         const bokehPass = new BokehPass(state.scene, state.camera, { focus: config.bokeh.focus, aperture: config.bokeh.aperture, maxblur: config.bokeh.maxblur });
         state.composer.addPass(bokehPass);
@@ -1021,6 +1028,6 @@ function animate() {
 
     state.controls.update(delta);
 
-    state.renderer.render(state.scene, state.camera);
+    state.composer.render();
 
 }
