@@ -172,11 +172,11 @@ function setupAudio() {
 function loadAudio() {
     const audioLoader = new THREE.AudioLoader(state.loadingManager);
     state.audio.blowSound = new THREE.Audio(state.audio.listener);
-    audioLoader.load('assets/audio/blow.mp3', buffer => state.audio.blowSound.setBuffer(buffer));
+    // audioLoader.load('assets/audio/blow.mp3', buffer => state.audio.blowSound.setBuffer(buffer));
     state.audio.confettiSound = new THREE.Audio(state.audio.listener);
-    audioLoader.load('assets/audio/confetti.mp3', buffer => state.audio.confettiSound.setBuffer(buffer));
+    // audioLoader.load('assets/audio/confetti.mp3', buffer => state.audio.confettiSound.setBuffer(buffer));
     state.audio.sparkleSound = new THREE.Audio(state.audio.listener);
-    audioLoader.load('assets/audio/sparkle.mp3', buffer => state.audio.sparkleSound.setBuffer(buffer));
+    // audioLoader.load('assets/audio/sparkle.mp3', buffer => state.audio.sparkleSound.setBuffer(buffer));
 }
 
 function setupControls() {
@@ -614,7 +614,7 @@ function updateMicLevel() {
 function blowOutCandle() {
     if (!state.flame.visible) return;
     state.flame.visible = false;
-    if (state.audio.blowSound && state.audio.blowSound.buffer) state.audio.blowSound.play();
+    // if (state.audio.blowSound && state.audio.blowSound.buffer) state.audio.blowSound.play();
     clearTimeout(state.celebrationTimeout);
     gsap.to(state.candleLight, { intensity: 0, duration: 0.5 });
     createSmoke();
@@ -622,8 +622,8 @@ function blowOutCandle() {
 }
 
 function startCelebration() {
-    if (state.audio.confettiSound && state.audio.confettiSound.buffer) state.audio.confettiSound.play();
-    if (state.audio.sparkleSound && state.audio.sparkleSound.buffer) state.audio.sparkleSound.play();
+    // if (state.audio.confettiSound && state.audio.confettiSound.buffer) state.audio.confettiSound.play();
+    // if (state.audio.sparkleSound && state.audio.sparkleSound.buffer) state.audio.sparkleSound.play();
     createConfetti();
     for (const vaseGroup of state.flowers) {
         for (const item of vaseGroup.children) {
