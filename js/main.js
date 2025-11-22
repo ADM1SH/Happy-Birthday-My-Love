@@ -5,10 +5,15 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { SSRPass } from 'three/addons/postprocessing/SSRPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { GammaCorrectionShader } from 'three/addons/shaders/GammaCorrectionShader.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import { MeshPhysicalMaterial } from 'three';
+import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+import { RectAreaLightHelper } from 'three/addons/helpers/RectAreaLightHelper.js';
 
 // --- CONFIGURATION ---
 const isMobile = window.innerWidth <= 768;
@@ -125,7 +130,6 @@ function init() {
     setupAudio();
     setupControls();
     setupLights();
-    createFloor();
     createTable();
     createCake();
     createPhotoFrames();
@@ -156,6 +160,7 @@ function setupRenderer() {
     state.renderer.setSize(window.innerWidth, window.innerHeight);
     state.renderer.setPixelRatio(config.pixelRatio);
     state.renderer.shadowMap.enabled = true;
+    state.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     state.renderer.outputEncoding = THREE.sRGBEncoding;
     state.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     document.body.appendChild(state.renderer.domElement);
@@ -186,10 +191,10 @@ function setupControls() {
 }
 
 function setupLights() {
-    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, config.lightIntensity.hemisphere);
+    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, config.lightIntensity.hemisphere * 0.5);
     state.scene.add(hemisphereLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, config.lightIntensity.directional);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, config.lightIntensity.directional * 0.5);
     directionalLight.position.set(-5, 10, 5);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = config.shadowMapSize;
@@ -202,33 +207,19 @@ function setupLights() {
     directionalLight.shadow.camera.bottom = -10;
     state.scene.add(directionalLight);
 
-    const light1 = new THREE.PointLight(0x00FFFF, config.lightIntensity.point1, 60);
+    const light1 = new THREE.PointLight(0x00FFFF, config.lightIntensity.point1 * 0.5, 60);
     light1.position.set(-4, 2.5, -3);
     state.scene.add(light1);
 
-    const light2 = new THREE.PointLight(0xFF00FF, config.lightIntensity.point2, 60);
+    const light2 = new THREE.PointLight(0xFF00FF, config.lightIntensity.point2 * 0.5, 60);
     light2.position.set(4, 3, 2);
     state.scene.add(light2);
 
-    state.candleLight = new THREE.PointLight(0xff9f4f, config.lightIntensity.base, 100);
+    state.candleLight = new THREE.PointLight(0xff9f4f, config.lightIntensity.base * 0.5, 100);
     state.candleLight.castShadow = true;
     state.candleLight.shadow.mapSize.width = config.shadowMapSize;
     state.candleLight.shadow.mapSize.height = config.shadowMapSize;
     state.candleLight.shadow.bias = -0.0005;
-}
-
-function createFloor() {
-    const floorGeometry = new THREE.PlaneGeometry(10, 10);
-    const floorMat = new THREE.MeshStandardMaterial({
-        color: 0x111111,
-        roughness: 0.6,
-        metalness: 0.4
-    });
-    const floor = new THREE.Mesh(floorGeometry, floorMat);
-    floor.receiveShadow = true;
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0;
-    state.scene.add(floor);
 }
 
 function createTable() {
@@ -513,6 +504,38 @@ function setupPostProcessing() {
 
     const smaaPass = new SMAAPass( window.innerWidth * state.renderer.getPixelRatio(), window.innerHeight * state.renderer.getPixelRatio() );
     state.composer.addPass(smaaPass);
+
+    const vignetteShader = {
+        uniforms: {
+            'tDiffuse': { value: null },
+            'offset': { value: 1.0 },
+            'darkness': { value: 1.0 }
+        },
+        vertexShader: [
+            'varying vec2 vUv;',
+            'void main() {',
+            'vUv = uv;',
+            'gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );',
+            '}'
+        ].join('\n'),
+        fragmentShader: [
+            'uniform sampler2D tDiffuse;',
+            'uniform float offset;',
+            'uniform float darkness;',
+            'varying vec2 vUv;',
+            'void main() {',
+            'vec4 texel = texture2D( tDiffuse, vUv );',
+            'vec2 uv = ( vUv - vec2( 0.5 ) ) * vec2( offset );',
+            'gl_FragColor = vec4( mix( texel.rgb, vec3( 1.0 - darkness ), dot( uv, uv ) ), texel.a );',
+            '}'
+        ].join('\n')
+    };
+
+    const vignettePass = new ShaderPass(vignetteShader);
+    state.composer.addPass(vignettePass);
+
+    const gammaCorrectionPass = new ShaderPass(GammaCorrectionShader);
+    state.composer.addPass(gammaCorrectionPass);
 
     if (!config.isMobile) {
         const bokehPass = new BokehPass(state.scene, state.camera, { focus: config.bokeh.focus, aperture: config.bokeh.aperture, maxblur: config.bokeh.maxblur });
