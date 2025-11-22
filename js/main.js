@@ -22,7 +22,7 @@ const config = {
         point1: isMobile ? 1.5 : 1.7,
         point2: isMobile ? 1.5 : 1.7,
     },
-    shadowMapSize: window.innerWidth <= 768 ? 1024 : 2048,
+    shadowMapSize: window.innerWidth <= 768 ? 2048 : 4096,
     bloom: {
         strength: isMobile ? 0.4 : 0.45,
         radius: isMobile ? 0.2 : 0.35,
@@ -38,8 +38,8 @@ const config = {
         confettiCount: window.innerWidth <= 768 ? 500 : 2000,
     },
     micSensitivity: 100,
-    geometryDetail: window.innerWidth <= 768 ? 32 : 64,
-    pixelRatio: Math.min(window.devicePixelRatio, 1.5),
+    geometryDetail: window.innerWidth <= 768 ? 64 : 128,
+    pixelRatio: Math.min(window.devicePixelRatio, 2),
 };
 
 // --- STATE ---
@@ -133,7 +133,7 @@ function init() {
     createBalloons();
     createGiftBox();
     createSparkles();
-    setupPostProcessing();
+    // setupPostProcessing();
     setupEventListeners();
     setupUI();
 }
@@ -153,7 +153,7 @@ function setupCamera() {
 }
 
 function setupRenderer() {
-    state.renderer = new THREE.WebGLRenderer({ antialias: !config.isMobile });
+    state.renderer = new THREE.WebGLRenderer({ antialias: true });
     state.renderer.setSize(window.innerWidth, window.innerHeight);
     state.renderer.setPixelRatio(config.pixelRatio);
     state.renderer.shadowMap.enabled = true;
@@ -300,7 +300,7 @@ function createCandle() {
     state.cakeGroup.add(candle);
 
     const flameGeo = new THREE.ConeGeometry(0.03, 0.1, config.geometryDetail / 4);
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0xFFA500, emissive: 0xFF4500, emissiveIntensity: 2 });
+    const flameMat = new THREE.MeshStandardMaterial({ color: 0xFFA500, emissive: 0xFF4500, emissiveIntensity: 2 });
     state.flame = new THREE.Mesh(flameGeo, flameMat);
     state.flame.position.set(0, 1.25, 0);
     state.cakeGroup.add(state.flame);
@@ -1021,6 +1021,6 @@ function animate() {
 
     state.controls.update(delta);
 
-    state.composer.render();
+    state.renderer.render(state.scene, state.camera);
 
 }
