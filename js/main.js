@@ -23,7 +23,7 @@ const config = {
         point1: isMobile ? 1.5 : 1.7,
         point2: isMobile ? 1.5 : 1.7,
     },
-    shadowMapSize: window.innerWidth <= 768 ? 2048 : 4096,
+    shadowMapSize: window.innerWidth <= 768 ? 1024 : 2048,
     bloom: {
         strength: isMobile ? 0.4 : 0.45,
         radius: isMobile ? 0.2 : 0.35,
@@ -39,8 +39,8 @@ const config = {
         confettiCount: window.innerWidth <= 768 ? 500 : 2000,
     },
     micSensitivity: 100,
-    geometryDetail: window.innerWidth <= 768 ? 64 : 128,
-    pixelRatio: Math.min(window.devicePixelRatio, 2),
+    geometryDetail: window.innerWidth <= 768 ? 32 : 64,
+    pixelRatio: Math.min(window.devicePixelRatio, 1.5),
 };
 
 // --- STATE ---
@@ -60,7 +60,6 @@ const state = {
     photoFrames: [],
     flowers: [],
     balloons: [],
-    giftBox: null,
     raycaster: new THREE.Raycaster(),
     mouse: new THREE.Vector2(),
     intersectedFrame: null,
@@ -132,7 +131,6 @@ function init() {
     createPhotoFrames();
     createVasesWithFlowers();
     createBalloons();
-    createGiftBox();
     createSparkles();
     setupPostProcessing();
     setupEventListeners();
@@ -147,7 +145,7 @@ function setupScene() {
 function setupCamera() {
     state.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     if (config.isMobile) {
-        state.camera.position.set(0, 2.5, 5.5); // Move camera back on mobile
+        state.camera.position.set(0, 2.5, 6.5); // Move camera back on mobile
     } else {
         state.camera.position.set(0, 2.5, 3.5);
     }
@@ -495,53 +493,6 @@ function createBalloons() {
     }
 }
 
-function createGiftBox() {
-    const boxSize = 0.3;
-    const boxGroup = new THREE.Group();
-
-    // Box base
-    const boxBaseGeo = new THREE.BoxGeometry(boxSize, boxSize / 2, boxSize);
-    const boxBaseMat = new THREE.MeshStandardMaterial({ color: 0xff69b4 });
-    const boxBase = new THREE.Mesh(boxBaseGeo, boxBaseMat);
-    boxBase.position.y = boxSize / 4;
-    boxGroup.add(boxBase);
-
-    // Box lid
-    const lidGeo = new THREE.BoxGeometry(boxSize * 1.05, boxSize / 4, boxSize * 1.05);
-    const lidMat = new THREE.MeshStandardMaterial({ color: 0xffd700 });
-    const lid = new THREE.Mesh(lidGeo, lidMat);
-    lid.position.y = boxSize / 2 + boxSize / 8;
-    boxGroup.add(lid);
-
-    // Ribbon
-    const ribbonGeo = new THREE.BoxGeometry(boxSize * 1.06, boxSize / 3.9, boxSize * 0.1);
-    const ribbonMat = new THREE.MeshStandardMaterial({ color: 0xffd700 });
-    const ribbon1 = new THREE.Mesh(ribbonGeo, ribbonMat);
-    const ribbon2 = new THREE.Mesh(ribbonGeo, ribbonMat);
-    ribbon2.rotation.y = Math.PI / 2;
-    lid.add(ribbon1);
-    lid.add(ribbon2);
-
-
-    boxGroup.position.set(0, 0.65, 1.5);
-    state.scene.add(boxGroup);
-    state.giftBox = boxGroup;
-    state.giftBox.lid = lid; // store the lid for animation
-
-    const fontLoader = new FontLoader(state.loadingManager);
-    fontLoader.load('https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json', 
-        font => {
-            const textGeo = new TextGeometry('Open Me!', { font, size: 0.1, height: 0.02 });
-            textGeo.center();
-            const textMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 1 });
-            const sign = new THREE.Mesh(textGeo, textMat);
-            sign.position.set(0, 1, 1.5);
-            state.scene.add(sign);
-            state.giftBox.sign = sign; // Store the sign for animation/removal
-        }
-    );
-}
-
 function createSparkles() {
     const sparkleGeo = new THREE.BufferGeometry();
     const posArray = new Float32Array(config.particles.sparkleCount * 3);
@@ -734,11 +685,7 @@ function onClick() {
 
     // Check for flame intersection
     if (state.raycaster.intersectObject(state.flame).length > 0) {
-        if (state.giftBox && !state.giftBox.opened) {
-            showPhotoModal(null, "You have a gift to open first! 🎁");
-        } else {
-            blowOutCandle();
-        }
+        blowOutCandle();
         return;
     }
 
@@ -754,40 +701,6 @@ function onClick() {
         }
         return;
     }
-
-    // Check for gift box intersection
-    if (state.giftBox) {
-        const intersectsGift = state.raycaster.intersectObject(state.giftBox, true);
-        if (intersectsGift.length > 0) {
-            openGiftBox();
-        }
-    }
-}
-
-function openGiftBox() {
-    if (state.giftBox.opened) return;
-
-    if (state.giftBox.sign) {
-        gsap.to(state.giftBox.sign.scale, { x: 0, y: 0, z: 0, duration: 0.5, onComplete: () => {
-            state.scene.remove(state.giftBox.sign);
-        }});
-    }
-
-    gsap.to(state.giftBox.lid.position, { y: "+=0.3", duration: 1 });
-    gsap.to(state.giftBox.lid.rotation, { z: Math.PI / 2, duration: 1, delay: 0.5 });
-
-    setTimeout(() => {
-        showPhotoModal(null, "Birthday presents await for you my love ❤️");
-
-        // Disappear animation
-        gsap.to(state.giftBox.scale, { x: 0, y: 0, z: 0, duration: 1, delay: 1, onComplete: () => {
-            state.scene.remove(state.giftBox);
-            state.giftBox = null;
-        }});
-
-    }, 1500);
-
-    state.giftBox.opened = true;
 }
 
 function showPhotoModal(texture, message = '') {
@@ -919,11 +832,6 @@ function animate() {
         balloon.rotation.y += 0.001; // Slow rotation
         const scale = 1 + Math.sin(elapsedTime * balloon.userData.speed + balloon.userData.phase) * 0.05;
         balloon.scale.set(scale, scale, scale);
-    }
-
-    if (state.giftBox && state.giftBox.sign && !state.giftBox.opened) {
-        const scale = 1 + Math.sin(elapsedTime * 5) * 0.1;
-        state.giftBox.sign.scale.set(scale, scale, scale);
     }
 
     if (state.flame && state.flame.visible) {
