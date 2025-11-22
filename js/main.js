@@ -147,7 +147,7 @@ function setupScene() {
 function setupCamera() {
     state.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     if (config.isMobile) {
-        state.camera.position.set(0, 2.5, 4.5); // Move camera back on mobile
+        state.camera.position.set(0, 2.5, 5.5); // Move camera back on mobile
     } else {
         state.camera.position.set(0, 2.5, 3.5);
     }
