@@ -8,6 +8,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+
+    <!-- Preload critical assets for faster loading -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" as="script" crossOrigin="anonymous">
+    <link rel="preload" href="js/main.js" as="script" crossOrigin="anonymous">
 </head>
 <body>
     <div id="loading-screen">
@@ -34,8 +38,8 @@
     <script type="importmap">
     {
         "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
         }
     }
     </script>
